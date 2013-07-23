@@ -29,8 +29,6 @@ void Simulator::timerEvent(QTimerEvent* e)
         emit updateGeometry(ver);
         return;
     }
-    using clock = std::chrono::high_resolution_clock;
-    const auto t0 = clock::now();
     const int n_points = x.size() / 3;
     Eigen::Map<Eigen::MatrixXi> conn((int*)tri.data(), 3, tri.size() / 3);
     std::vector<Eigen::Triplet<float>> nzs, nzb, nz0;
@@ -61,7 +59,6 @@ void Simulator::timerEvent(QTimerEvent* e)
                     }
             }
     }
-    const auto t01 = clock::now();
     Eigen::SparseMatrix<float> As(3 * n_points, 3 * n_points), Ab(3 * n_points, 3 * n_points), A0(3 * n_points, 2 * n_points);
     As.setFromTriplets(nzs.begin(), nzs.end());
     //Ab.setFromTriplets(nzb.begin(), nzb.end());
@@ -87,7 +84,8 @@ void Simulator::timerEvent(QTimerEvent* e)
         }
     }
     const auto t1 = clock::now();
-    const float dt = 0.01f;
+    const float dt = std::chrono::duration<float>(t1 - t).count();
+    t = t1;
     Eigen::SparseMatrix<float> A = M + dt * dt * As + dt * B;
     Eigen::VectorXf b = M * v + dt * (F - As * x + A0 * x0);
     Eigen::ConjugateGradient<Eigen::SparseMatrix<float>> solver;
@@ -97,9 +95,6 @@ void Simulator::timerEvent(QTimerEvent* e)
         std::cerr << "No convergence" << std::endl;
         return;
     }
-    const auto t2 = clock::now();
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(t01 - t0).count() << ' ' << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t01).count() <<
-          ' ' << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << std::endl;
     //std::cout << "solved with: " << solver.iterations() << " iterations" << std::endl;
     x += dt * v;
 }
@@ -130,7 +125,7 @@ void Simulator::start()
     vorout.normlist = nullptr;
     std::string current_locale = std::setlocale(LC_ALL, nullptr);
     std::setlocale(LC_ALL, "C");
-    ::triangulate(const_cast<char*>("QznevDq33a0.0016"), &in, &out, &vorout);
+    ::triangulate(const_cast<char*>("QznevDq33a0.0018"), &in, &out, &vorout);
     std::setlocale(LC_ALL, current_locale.c_str());
     std::cout << "Number of points: " << out.numberofpoints << std::endl;
     std::vector<float> ver(3 * out.numberofpoints);
@@ -403,4 +398,5 @@ void Simulator::start()
     }
     timer_simulate = startTimer(0);
     timer_update = startTimer(33);
+    t = clock::now();
 }

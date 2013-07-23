@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <array>
+#include <chrono>
 #include <QObject>
 #include <Eigen/Core>
 #include <Eigen/StdVector>
@@ -19,6 +20,8 @@ class Simulator : public QObject
     Eigen::VectorXf x0, x, v;
 
     int timer_update, timer_simulate;
+    using clock = std::chrono::high_resolution_clock;
+    clock::time_point t;
 
     void timerEvent(QTimerEvent*) override;
 
